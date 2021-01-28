@@ -414,7 +414,7 @@ namespace ARMeilleure.Translation.PTC
             }
         }
 
-        internal static void LoadTranslations(ConcurrentDictionary<ulong, TranslatedFunction> funcs, IMemoryManager memory, JumpTable jumpTable)
+        internal static void LoadTranslations(ConcurrentDictionary<ulong, TranslatedFunction> funcs, ConcurrentDictionary<ulong, TranslatedFunction> hookOrgFuncs, IMemoryManager memory, JumpTable jumpTable)
         {
             if ((int)_infosStream.Length == 0 ||
                 (int)_codesStream.Length == 0 ||
@@ -463,7 +463,11 @@ namespace ARMeilleure.Translation.PTC
 
                         bool isAddressUnique = funcs.TryAdd(infoEntry.Address, func);
 
-                        Debug.Assert(isAddressUnique, $"The address 0x{infoEntry.Address:X16} is not unique.");
+                        if(!isAddressUnique)
+                            hookOrgFuncs.TryAdd(infoEntry.Address, func);
+                        
+
+                        //Debug.Assert(isAddressUnique, $"The address 0x{infoEntry.Address:X16} is not unique.");
                     }
                     else
                     {
@@ -657,7 +661,7 @@ namespace ARMeilleure.Translation.PTC
             }
         }
 
-        internal static void MakeAndSaveTranslations(ConcurrentDictionary<ulong, TranslatedFunction> funcs, IMemoryManager memory, JumpTable jumpTable)
+        internal static void MakeAndSaveTranslations(ConcurrentDictionary<ulong, TranslatedFunction> funcs, ConcurrentDictionary<ulong, TranslatedFunction> hookOrgFuncs, IMemoryManager memory, JumpTable jumpTable)
         {
             var profiledFuncsToTranslate = PtcProfiler.GetProfiledFuncsToTranslate(funcs);
 
@@ -682,7 +686,10 @@ namespace ARMeilleure.Translation.PTC
 
                     bool isAddressUnique = funcs.TryAdd(address, func);
 
-                    Debug.Assert(isAddressUnique, $"The address 0x{address:X16} is not unique.");
+                    if (!isAddressUnique)
+                        hookOrgFuncs.TryAdd(address, func);
+
+                    //Debug.Assert(isAddressUnique, $"The address 0x{address:X16} is not unique.");
 
                     if (func.HighCq)
                     {

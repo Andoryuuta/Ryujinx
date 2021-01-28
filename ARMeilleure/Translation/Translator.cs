@@ -21,10 +21,11 @@ namespace ARMeilleure.Translation
     public class Translator
     {
         private readonly IJitMemoryAllocator _allocator;
-        private readonly IMemoryManager _memory;
+        public readonly IMemoryManager _memory;
 
         private readonly ConcurrentDictionary<ulong, TranslatedFunction> _funcs;
         private readonly ConcurrentQueue<KeyValuePair<ulong, IntPtr>> _oldFuncs;
+        public ConcurrentDictionary<ulong, TranslatedFunction> _hookOrgFuncs;
 
         private readonly ConcurrentStack<RejitRequest> _backgroundStack;
         private readonly AutoResetEvent _backgroundTranslatorEvent;
@@ -45,6 +46,7 @@ namespace ARMeilleure.Translation
 
             _funcs = new ConcurrentDictionary<ulong, TranslatedFunction>();
             _oldFuncs = new ConcurrentQueue<KeyValuePair<ulong, IntPtr>>();
+            _hookOrgFuncs = new ConcurrentDictionary<ulong, TranslatedFunction>();
 
             _backgroundStack = new ConcurrentStack<RejitRequest>();
             _backgroundTranslatorEvent = new AutoResetEvent(false);
@@ -63,22 +65,32 @@ namespace ARMeilleure.Translation
 
                 if (_backgroundStack.TryPop(out RejitRequest request))
                 {
-                    TranslatedFunction func = Translate(_memory, _jumpTable, request.Address, request.Mode, highCq: true);
 
-                    _funcs.AddOrUpdate(request.Address, func, (key, oldFunc) =>
+                    if(request.Address == 0xCBDBFB0)//request.Address == 0xCBAA070 || request.Address == 0xCBA9F70)
                     {
-                        EnqueueForDeletion(key, oldFunc);
-                        return func;
-                    });
-
-                    _jumpTable.RegisterFunction(request.Address, func);
-
-                    if (PtcProfiler.Enabled)
+                        Console.WriteLine("They tried to rejit our hook!");
+                    }
+                    else
                     {
-                        PtcProfiler.UpdateEntry(request.Address, request.Mode, highCq: true);
+                        TranslatedFunction func = Translate(_memory, _jumpTable, request.Address, request.Mode, highCq: true);
+
+                        _funcs.AddOrUpdate(request.Address, func, (key, oldFunc) =>
+                        {
+                            EnqueueForDeletion(key, oldFunc);
+                            return func;
+                        });
+
+                        _jumpTable.RegisterFunction(request.Address, func);
+
+                        if (PtcProfiler.Enabled)
+                        {
+                            PtcProfiler.UpdateEntry(request.Address, request.Mode, highCq: true);
+                        }
+
+                        _backgroundTranslatorLock.ReleaseReaderLock();
                     }
 
-                    _backgroundTranslatorLock.ReleaseReaderLock();
+                    
                 }
                 else
                 {
@@ -90,7 +102,12 @@ namespace ARMeilleure.Translation
             _backgroundTranslatorEvent.Set(); // Wake up any other background translator threads, to encourage them to exit.
         }
 
-        public void Execute(State.ExecutionContext context, ulong address)
+        public void AddFunc(ulong guestAddress, TranslatedFunction func)
+        {
+            _funcs.TryAdd(guestAddress, func);
+        }
+
+        public void Execute(State.ExecutionContext context, ulong address, Action<ulong> executeStepCallback)
         {
             if (Interlocked.Increment(ref _threadCount) == 1)
             {
@@ -101,8 +118,8 @@ namespace ARMeilleure.Translation
 
                 if (Ptc.State == PtcState.Enabled)
                 {
-                    Ptc.LoadTranslations(_funcs, _memory, _jumpTable);
-                    Ptc.MakeAndSaveTranslations(_funcs, _memory, _jumpTable);
+                    Ptc.LoadTranslations(_funcs, _hookOrgFuncs, _memory, _jumpTable);
+                    Ptc.MakeAndSaveTranslations(_funcs, _hookOrgFuncs, _memory, _jumpTable);
                 }
 
                 PtcProfiler.Start();
@@ -136,6 +153,7 @@ namespace ARMeilleure.Translation
 
             do
             {
+                executeStepCallback(address);
                 address = ExecuteSingle(context, address);
             }
             while (context.Running && address != 0);
@@ -166,6 +184,16 @@ namespace ARMeilleure.Translation
             Statistics.StopTimer(address);
 
             return nextAddr;
+        }
+
+        public TranslatedFunction GetOrTranslateHookedOriginalFunction(ulong address)
+        {
+            if (!_hookOrgFuncs.TryGetValue(address, out TranslatedFunction func))
+            {
+                func = Translate(_memory, _jumpTable, address, ExecutionMode.Aarch64, highCq: false);
+                _hookOrgFuncs.TryAdd(address, func);
+            }
+            return func;
         }
 
         internal TranslatedFunction GetOrTranslate(ulong address, ExecutionMode mode, bool hintRejit = false)

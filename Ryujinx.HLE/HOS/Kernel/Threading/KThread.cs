@@ -1032,12 +1032,95 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
             }
             else
             {
-                Owner.Context.Execute(Context, _entrypoint);
+                Owner.Context.Execute(Context, _entrypoint, OnExecuteStep);
             }
 
             Context.Dispose();
             _schedulerWaitEvent.Dispose();
         }
+
+        public void OnExecuteStep(ulong address) {
+            HleProcessDebugger.Image image = Owner.Debugger.GetImage(address, out int imageIndex);
+            //var data = Owner.CpuMemory.GetSpan(address, 64).ToArray();
+
+            /*
+             * 00:00:14.711 |I| Loader LoadNsos: Loading image 0 at 0x0000000008000000...
+             * 00:00:14.713 |I| Loader LoadNsos: Loading image 1 at 0x0000000008004000...
+             * 00:00:14.762 |I| Loader LoadNsos: Loading image 2 at 0x0000000014f04000...
+             * 00:00:14.764 |I| Loader LoadNsos: Loading image 3 at 0x00000000155b5000...
+             */
+
+            if( address == 0x0000000008004000 + 0x4BA5F70 ||
+                address == 0x0000000008004000 + 0x4BA6070 ||
+                address == 0x0000000008004000 + 0x4BA60B0 ||
+                address == 0x0000000008004000 + 0x4BA60E4 ||
+                address == 0x0000000008004000 + 0x4BA60A8 ||
+                address == 0x0000000008004000 + 0x4BA5FBC ||
+                address == 0x0000000008004000 + 0x4BA5FE8 ||
+                address == 0x0000000008004000 + 0x31678 ||
+                address == 0x0000000008004000 + 0x31668 ||
+                address == 0x0000000008004000 + 0x3158C ||
+                address == 0x0000000008004000 + 0x315B4 ||
+                address == 0x0000000008004000 + 0x315B8
+                )
+            {
+                // internal_murmur3_hash
+                Logger.Info?.PrintMsg(LogClass.Application, string.Format("OnExecuteStep: {0:X}", address));
+                var x0 = Context.GetX(0);
+                var x1 = Context.GetX(1);
+                Logger.Info?.PrintMsg(LogClass.Application, string.Format("X0: {0:X}", x0));
+
+                var strPtr = Owner.CpuMemory.Read<ulong>(x0);
+                var strDataStart = Owner.CpuMemory.GetSpan(strPtr, 32).ToArray();
+            }
+
+
+            /*
+            ulong offset = 0x4BA5F70;//0x4BA6070;
+            if ((image != null && address == image.BaseAddress+ offset) ||
+                address == 0x0000000008000000 + offset ||
+                address == 0x0000000008004000 + offset ||
+                address == 0x0000000014f04000 + offset ||
+                address == 0x00000000155b5000 + offset)
+            {
+                // internal_murmur3_hash
+                Logger.Info?.PrintMsg(LogClass.Application, string.Format("OnExecuteStep: {0:X}", address));
+                var x0 = Context.GetX(0);
+                var x1 = Context.GetX(1);
+                Logger.Info?.PrintMsg(LogClass.Application, string.Format("X0: {0:X}",x0));
+
+                var strPtr = Owner.CpuMemory.Read<ulong>(x0);
+                var strDataStart = Owner.CpuMemory.GetSpan(strPtr, 32).ToArray();
+
+            }
+            */
+
+            // Margin check 1
+            /*
+            ulong margin = 0x4000;
+            ulong offset = 0x4BA5F70;
+            if ( address <= (0x0000000008000000 + offset + margin) && address >= (0x0000000008000000 + offset - margin) ||
+                address <= (0x0000000008004000 + offset + margin) && address >= (0x0000000008004000 + offset - margin) ||
+                address <= (0x0000000014f04000 + offset + margin) && address >= (0x0000000014f04000 + offset - margin) ||
+                address <= (0x00000000155b5000 + offset + margin) && address >= (0x00000000155b5000 + offset - margin))
+            {
+                Logger.Info?.PrintMsg(LogClass.Application, string.Format("Within the margins at {0:X}", address));
+            }
+
+            // Check 2
+            offset = 0x4BA6070;
+            if (address <= (0x0000000008000000 + offset + margin) && address >= (0x0000000008000000 + offset - margin) ||
+                address <= (0x0000000008004000 + offset + margin) && address >= (0x0000000008004000 + offset - margin) ||
+                address <= (0x0000000014f04000 + offset + margin) && address >= (0x0000000014f04000 + offset - margin) ||
+                address <= (0x00000000155b5000 + offset + margin) && address >= (0x00000000155b5000 + offset - margin))
+            {
+                Logger.Info?.PrintMsg(LogClass.Application, string.Format("Within the margins at {0:X}", address));
+            }
+            */
+
+
+        }
+
 
         public void MakeUnschedulable()
         {

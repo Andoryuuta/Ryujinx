@@ -2,13 +2,14 @@
 using Ryujinx.Cpu;
 using Ryujinx.HLE.HOS.Kernel.Process;
 using Ryujinx.Memory;
+using System;
 
 namespace Ryujinx.HLE.HOS
 {
-    class ArmProcessContext : IProcessContext
+    public class ArmProcessContext : IProcessContext
     {
         private readonly MemoryManager _memoryManager;
-        private readonly CpuContext _cpuContext;
+        public CpuContext _cpuContext;
 
         public IVirtualMemoryManager AddressSpace => _memoryManager;
 
@@ -18,7 +19,7 @@ namespace Ryujinx.HLE.HOS
             _cpuContext = new CpuContext(memoryManager);
         }
 
-        public void Execute(ExecutionContext context, ulong codeAddress) => _cpuContext.Execute(context, codeAddress);
+        public void Execute(ExecutionContext context, ulong codeAddress, Action<ulong> executeStepCallback) => _cpuContext.Execute(context, codeAddress, executeStepCallback);
         public void Dispose() => _memoryManager.Dispose();
     }
 }

@@ -1,11 +1,12 @@
 ﻿using ARMeilleure.State;
 using ARMeilleure.Translation;
+using System;
 
 namespace Ryujinx.Cpu
 {
     public class CpuContext
     {
-        private readonly Translator _translator;
+        public Translator _translator;
 
         public CpuContext(MemoryManager memory)
         {
@@ -23,9 +24,9 @@ namespace Ryujinx.Cpu
             return new ExecutionContext(new JitMemoryAllocator());
         }
 
-        public void Execute(ExecutionContext context, ulong address)
+        public void Execute(ExecutionContext context, ulong address, Action<ulong> executeStepCallback)
         {
-            _translator.Execute(context, address);
+            _translator.Execute(context, address, executeStepCallback);
         }
     }
 }

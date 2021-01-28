@@ -8,6 +8,6 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
     {
         IVirtualMemoryManager AddressSpace { get; }
 
-        void Execute(ExecutionContext context, ulong codeAddress);
+        void Execute(ExecutionContext context, ulong codeAddress, Action<ulong> executeStepCallback);
     }
 }
