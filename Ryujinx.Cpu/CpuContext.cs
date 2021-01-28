@@ -24,9 +24,9 @@ namespace Ryujinx.Cpu
             return new ExecutionContext(new JitMemoryAllocator());
         }
 
-        public void Execute(ExecutionContext context, ulong address, Action<ulong> executeStepCallback)
+        public void Execute(ExecutionContext context, ulong address)
         {
-            _translator.Execute(context, address, executeStepCallback);
+            _translator.Execute(context, address);
         }
     }
 }

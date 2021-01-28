@@ -19,7 +19,7 @@ namespace Ryujinx.HLE.HOS
             _cpuContext = new CpuContext(memoryManager);
         }
 
-        public void Execute(ExecutionContext context, ulong codeAddress, Action<ulong> executeStepCallback) => _cpuContext.Execute(context, codeAddress, executeStepCallback);
+        public void Execute(ExecutionContext context, ulong codeAddress) => _cpuContext.Execute(context, codeAddress);
         public void Dispose() => _memoryManager.Dispose();
     }
 }

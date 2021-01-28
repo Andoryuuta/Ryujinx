@@ -66,9 +66,9 @@ namespace ARMeilleure.Translation
                 if (_backgroundStack.TryPop(out RejitRequest request))
                 {
 
-                    if(request.Address == 0xCBDBFB0)//request.Address == 0xCBAA070 || request.Address == 0xCBA9F70)
+                    if(_hookOrgFuncs.ContainsKey(request.Address))
                     {
-                        Console.WriteLine("They tried to rejit our hook!");
+                        Console.WriteLine("They tried to rejit one of our hooks!");
                     }
                     else
                     {
@@ -107,7 +107,7 @@ namespace ARMeilleure.Translation
             _funcs.TryAdd(guestAddress, func);
         }
 
-        public void Execute(State.ExecutionContext context, ulong address, Action<ulong> executeStepCallback)
+        public void Execute(State.ExecutionContext context, ulong address)
         {
             if (Interlocked.Increment(ref _threadCount) == 1)
             {
@@ -153,7 +153,6 @@ namespace ARMeilleure.Translation
 
             do
             {
-                executeStepCallback(address);
                 address = ExecuteSingle(context, address);
             }
             while (context.Running && address != 0);

@@ -13,7 +13,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
             AddressSpace = asManager;
         }
 
-        public void Execute(ExecutionContext context, ulong codeAddress, Action<ulong> executeStepCallback)
+        public void Execute(ExecutionContext context, ulong codeAddress)
         {
             throw new NotSupportedException();
         }

@@ -75,13 +75,6 @@ namespace Ryujinx.HLE
 
             _context = context;
 
-
-            //0xCBAA070
-            //0xCBA9F70
-            //0xcbd0620 -- via.str makehash
-
-            //Marshal.GetFunctionPointerForDelegate<GuestFunction>(_hook),
-
             /*
             _transfunc_via_str_makehash = new TranslatedFunction(HookViaStrMakeHash, 0x480, false);
             _context._cpuContext._translator.AddFunc(0xCBD0620, _transfunc_via_str_makehash);
